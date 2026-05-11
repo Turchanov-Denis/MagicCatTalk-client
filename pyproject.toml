@@ -1,0 +1,29 @@
+[project]
+name = "codeassistant"
+version = "0.1.0"
+requires-python = ">=3.12"
+
+dependencies = [
+    "torch",
+    "torchvision",
+    "torchaudio",
+]
+
+[[tool.uv.index]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cu121"
+priority = 1
+
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple"
+priority = 2
+
+[project.scripts]
+lor = "codeassistant.cli.main:app"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
