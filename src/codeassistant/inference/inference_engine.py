@@ -13,7 +13,7 @@ class ModelRuntime:
         self._tokenizer = None
         self._model_id = None
         self._lora_path = None
-
+        self._lora_active = False
     def load(self, model_id=None, lora_path=None):
         config = load_config()
 
@@ -53,6 +53,15 @@ class ModelRuntime:
             )
 
         model.eval()
+        if lora_path:
+            model = PeftModel.from_pretrained(
+                model,
+                lora_path,
+                is_trainable=False
+            )
+            self._lora_active = True
+        else:
+            self._lora_active = False
 
         self._model = model
         self._tokenizer = tokenizer
@@ -63,6 +72,13 @@ class ModelRuntime:
         if self._model is None or self._tokenizer is None:
             self.load()
 
+    def info(self):
+        return {
+            "model_id": self._model_id,
+            "lora_path": self._lora_path,
+            "lora_active": self._lora_active,
+            "device": next(self._model.parameters()).device if self._model else None
+        }
     def sync(self):
         config = load_config()
 

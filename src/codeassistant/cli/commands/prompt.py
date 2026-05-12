@@ -27,7 +27,6 @@ def prompt(
         parts.append(content)
 
     full_prompt = "\n\n".join(parts).strip()
-
     result = runtime.generate(full_prompt)
-
+    console.print(runtime.info())
     console.print(Markdown(result))
