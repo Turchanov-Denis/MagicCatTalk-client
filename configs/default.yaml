@@ -1,2 +1,2 @@
-lora_path: null
-model_path: model/deepseek-coder
+model_id: Qwen\Qwen2.5-Coder-3B-Instruct
+lora_path: C:\Users\Firo\Desktop\Equipment\lora\codereview-lora

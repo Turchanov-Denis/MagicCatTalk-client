@@ -11,13 +11,13 @@ from codeassistant.cli.commands.prompt import prompt
 
 
 def print_home():
-    config = load_config() or {}
-    model_name = Path(config.get("model_path", "Not set")).name
-
+    config = load_config()
+    model_name = config.get("model_id", "Not set")
+    lora_name = config.get("lora_path", "Not set")
     items = ['setup', 'config state', 'prompt', 'exit']
     menu = '\n'.join(f'[{i + 1}] {item}' for i, item in enumerate(items))
 
-    content = f"[bold blue]Model:[/bold blue] {model_name}\n\n" + menu
+    content = f"[bold blue]Model:[/bold blue] {model_name}\n\n"+ f"[bold blue]Lora:[/bold blue] {lora_name}\n\n" + menu
 
     console.print(
         Panel.fit(
@@ -33,6 +33,34 @@ def print_home_briefly():
     menu_line = "  ".join(f"[{i + 1}] {item}" for i, item in enumerate(items))
 
     console.print(Panel.fit(menu_line, title="AI Assistant"))
+
+
+def parse_prompt_input(raw: str):
+    parts = raw.split()
+
+    text = []
+    file = None
+    lines = None
+
+    i = 0
+    while i < len(parts):
+
+        if parts[i] == "-f":
+            file = parts[i + 1]
+            i += 2
+            continue
+
+        if parts[i] == "-s":
+            start = parts[i + 1]
+            end = parts[i + 2]
+            lines = f"{start}:{end}"
+            i += 3
+            continue
+
+        text.append(parts[i])
+        i += 1
+
+    return " ".join(text), file, lines
 
 
 def run_tui():
@@ -55,7 +83,37 @@ def run_tui():
             continue
 
         if cmd in ["3", "prompt"]:
-            prompt()
+            console.print("""
+            [bold green]Prompt mode[/bold green]
+
+            Example:
+            › explain this code -f main.py -s 20 30
+
+            Flags:
+            -f file path
+            -s start end (lines)
+
+            Type 'exit' to leave prompt mode
+            """)
+
+            while True:
+                raw = input("› ").strip()
+
+                if raw.lower() in ["exit"]:
+                    print_home_briefly()
+                    break
+
+                if not raw:
+                    continue
+
+                text, file, lines = parse_prompt_input(raw)
+
+                prompt(
+                    text=text,
+                    file=file,
+                    lines=lines
+                )
+
             continue
 
         print("Unknown command:", cmd)
