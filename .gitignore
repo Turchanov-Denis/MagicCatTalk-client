@@ -7,6 +7,7 @@ __pycache__/
 *.egg-info/
 /lora/
 /model/
+**/chats/*
 # User-specific stuff
 .idea/**
 .idea/**/workspace.xml
