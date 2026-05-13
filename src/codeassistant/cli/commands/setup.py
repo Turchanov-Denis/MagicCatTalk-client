@@ -19,13 +19,21 @@ def setup():
     console.print("\n[bold cyan]Lorariel Setup[/bold cyan]\n")
 
     if config.get("model_id"):
-        console.print(f"[green]Current model:[/green] {config['model_id']}")
-        console.print(f"[green]Current LoRA:[/green] {config.get('lora_path')}\n")
+        console.print(
+            f"[green]Current model:[/green] "
+            f"{config['model_id']}"
+        )
+
+    console.print(
+        f"[green]Current LoRA:[/green] "
+        f"{config.get('lora_path')}\n"
+    )
 
     console.print("Setup options:\n")
     console.print("[1] Set HuggingFace model")
     console.print("[2] Set LoRA path")
-    console.print("[3] Exit\n")
+    console.print("[3] Remove LoRA")
+    console.print("[4] Exit\n")
 
     choice = typer.prompt("Select option", type=int)
 
@@ -34,7 +42,8 @@ def setup():
     # -------------------------
     if choice == 1:
         repo_id = typer.prompt(
-            "Enter HF model (e.g. Qwen/Qwen2.5-Coder-3B)"
+            "Enter HF model "
+            "(e.g. Qwen/Qwen2.5-Coder-3B)"
         ).strip()
 
         if not repo_id:
@@ -42,38 +51,67 @@ def setup():
             return
 
         if not validate_hf_model(repo_id):
-            console.print("[red]Model not found on HuggingFace[/red]")
+            console.print(
+                "[red]Model not found on HuggingFace[/red]"
+            )
+
             if not typer.confirm("Continue anyway?"):
                 return
 
         config["model_id"] = repo_id
+
         save_config(config)
 
-        console.print("\n[green]Model updated[/green]\n")
+        console.print(
+            "\n[green]Model updated[/green]\n"
+        )
+
         return
 
     # -------------------------
-    # LORA
+    # SET LORA
     # -------------------------
     if choice == 2:
         lora_path = typer.prompt(
-            "Enter LoRA path (optional, empty = disable)"
+            "Enter LoRA path"
         ).strip()
 
-        if lora_path:
-            lora_path = str(Path(lora_path).expanduser().resolve())
+        if not lora_path:
+            console.print("[red]Empty path[/red]")
+            return
 
-            if not Path(lora_path).exists():
-                console.print("[red]LoRA path not found[/red]")
-                return
+        lora_path = str(
+            Path(lora_path)
+            .expanduser()
+            .resolve()
+        )
 
-            config["lora_path"] = lora_path
-        else:
-            config["lora_path"] = None
+        if not Path(lora_path).exists():
+            console.print("[red]LoRA path not found[/red]")
+            return
+
+        config["lora_path"] = lora_path
 
         save_config(config)
 
-        console.print("\n[green]LoRA updated[/green]\n")
+        console.print(
+            "\n[green]LoRA updated[/green]\n"
+        )
+
+        return
+
+    # -------------------------
+    # REMOVE LORA
+    # -------------------------
+    if choice == 3:
+        config["lora_path"] = None
+
+        save_config(config)
+
+        console.print(
+            "\n[green]LoRA removed[/green]\n"
+        )
+
         return
 
     # -------------------------

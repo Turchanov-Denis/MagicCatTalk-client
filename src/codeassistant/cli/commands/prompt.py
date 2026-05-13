@@ -1,3 +1,4 @@
+from utils.config import load_config
 from utils.files import read_file, read_file_range
 from codeassistant.inference.inference_engine import runtime
 from rich.markdown import Markdown
@@ -27,6 +28,12 @@ def prompt(
         parts.append(content)
 
     full_prompt = "\n\n".join(parts).strip()
-    result = runtime.generate(full_prompt)
+
+    config = load_config()
+    lora_path = config.get("lora_path")
+    if lora_path:
+        result = runtime.generate(full_prompt, lora_path)
+    else:
+        result = runtime.generate(full_prompt)
     console.print(runtime.info())
     console.print(Markdown(result))

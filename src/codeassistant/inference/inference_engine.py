@@ -1,4 +1,5 @@
 import torch
+
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from peft import PeftModel
 from huggingface_hub import HfApi
@@ -14,8 +15,6 @@ class ModelRuntime:
         self._model = None
         self._tokenizer = None
         self._model_id = None
-        self._lora_path = None
-        self._lora_active = False
 
         # chat state
         self._chat_store = ChatStore()
@@ -38,11 +37,10 @@ class ModelRuntime:
     # -------------------------
     # MODEL LOAD
     # -------------------------
-    def load(self, model_id=None, lora_path=None):
+    def load(self, model_id=None):
         config = load_config()
 
         model_id = model_id or config.get("model_id")
-        lora_path = lora_path or config.get("lora_path")
 
         if not model_id:
             raise ValueError("model_id is not set")
@@ -54,6 +52,7 @@ class ModelRuntime:
             HfApi().model_info(model_id)
         except Exception:
             print(f"\nModel not found: {model_id}")
+
             if not Confirm.ask("Download anyway?"):
                 raise RuntimeError("Aborted")
 
@@ -63,24 +62,19 @@ class ModelRuntime:
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
 
-        # model
-        dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+        # dtype
+        dtype = (
+            torch.float16
+            if torch.cuda.is_available()
+            else torch.float32
+        )
 
+        # base model
         model = AutoModelForCausalLM.from_pretrained(
             model_id,
             device_map="auto",
             torch_dtype=dtype
         )
-
-        # LoRA
-        self._lora_active = False
-        if lora_path:
-            model = PeftModel.from_pretrained(
-                model,
-                lora_path,
-                is_trainable=False
-            )
-            self._lora_active = True
 
         model.eval()
 
@@ -88,7 +82,6 @@ class ModelRuntime:
         self._model = model
         self._tokenizer = tokenizer
         self._model_id = model_id
-        self._lora_path = lora_path
 
     # -------------------------
     # ENSURE
@@ -104,23 +97,24 @@ class ModelRuntime:
         config = load_config()
 
         model_id = config.get("model_id")
-        lora_path = config.get("lora_path")
 
         if not model_id:
             return
 
         model_id = model_id.replace("\\", "/")
 
-        if model_id != self._model_id or lora_path != self._lora_path:
+        if model_id != self._model_id:
             print(f"\n🔄 Switching model → {model_id}\n")
+
             self._model = None
             self._tokenizer = None
-            self.load(model_id, lora_path)
+
+            self.load(model_id)
 
     # -------------------------
     # GENERATE
     # -------------------------
-    def generate(self, prompt: str):
+    def generate(self, prompt: str, lora_path=None):
         self.ensure()
         self.sync()
 
@@ -132,7 +126,19 @@ class ModelRuntime:
         top_p = gen.get("top_p", 0.95)
 
         tokenizer = self._tokenizer
+
+        # base model
         model = self._model
+
+        # temporary LoRA
+        if lora_path:
+            model = PeftModel.from_pretrained(
+                model,
+                lora_path,
+                is_trainable=False
+            )
+
+            model.eval()
 
         device = next(model.parameters()).device
 
@@ -153,6 +159,7 @@ class ModelRuntime:
             )
 
         input_len = inputs["input_ids"].shape[1]
+
         generated = outputs[0][input_len:]
 
         result = tokenizer.decode(
@@ -180,14 +187,17 @@ class ModelRuntime:
     # -------------------------
     # INFO
     # -------------------------
-    def info(self):
+    def info(self, lora_path=None):
         return {
             "model_id": self._model_id,
-            "lora_path": self._lora_path,
-            "lora_active": self._lora_active,
+            "lora_path": lora_path,
             "chat": self._chat_name,
             "history_len": len(self._history),
-            "device": str(next(self._model.parameters()).device) if self._model else None
+            "device": (
+                str(next(self._model.parameters()).device)
+                if self._model
+                else None
+            )
         }
 
 

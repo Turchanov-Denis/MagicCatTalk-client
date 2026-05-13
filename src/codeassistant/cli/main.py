@@ -1,5 +1,5 @@
 import typer
-from ui.tui import run_tui
+from ui.ui import run_tui
 
 def app():
     run_tui()

@@ -107,17 +107,39 @@ def run_tui():
             continue
 
         if cmd in ["3","chat"]:
-            name = input("Chat name: ").strip()
+            if cmd in ["3", "chat"]:
+                chats = runtime._chat_store.list_chats()
 
-            if not name:
-                print("Empty chat name")
+                console.print("\n[bold cyan]Available chats:[/bold cyan]\n")
+
+                if chats:
+                    for i, c in enumerate(chats, start=1):
+                        console.print(
+                            f"[green][{i}][/green] {c['name']} "
+                            f"[dim]({c.get('created_at', 'unknown')})[/dim]"
+                        )
+                else:
+                    console.print("[yellow]No chats found[/yellow]")
+
+                console.print("\n[dim]Type new name to create a chat[/dim]\n")
+
+                name = input("Chat name: ").strip()
+
+                if not name:
+                    print("Empty chat name")
+                    continue
+
+                # -------------------------
+                # REGISTER CHAT (NEW)
+                # -------------------------
+                runtime._chat_store.register_chat(name)
+
+                # load chat
+                runtime.load_chat(name)
+
+                console.print(f"\n[green]Switched to chat:[/green] {name}\n")
+                print_home_briefly()
                 continue
-
-            runtime.load_chat(name)
-
-            console.print(f"\n[green]Switched to chat:[/green] {name}\n")
-            print_home_briefly()
-            continue
 
         if cmd in ["4", 'benchmark']:
             print('benchmark')
