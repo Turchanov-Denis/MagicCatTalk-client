@@ -85,9 +85,6 @@ THEME = config.get(
 
 COMMANDS = {
 
-    "/init":
-        "initialize project",
-
     "/setup":
         "configure runtime settings",
 
@@ -461,19 +458,6 @@ def run_tui():
             ]:
 
                 break
-
-            # -------------------------
-            # INIT
-            # -------------------------
-
-            if cmd in [
-                "init",
-                "/init"
-            ]:
-
-                init()
-
-                continue
 
             # -------------------------
             # SETUP
