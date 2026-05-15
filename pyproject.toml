@@ -7,6 +7,7 @@ dependencies = [
     "torch",
     "torchvision",
     "torchaudio",
+    "prompt-toolkit>=3.0.52",
 ]
 
 [[tool.uv.index]]

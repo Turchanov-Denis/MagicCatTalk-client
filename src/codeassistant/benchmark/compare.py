@@ -14,7 +14,7 @@ device = "cuda"
 # CONFIG
 # -----------------------------
 base_model_name = "Qwen/Qwen2.5-Coder-3B-Instruct"
-lora_path = "../../../lora/codereview-lora"
+lora_path = "../../lora/codereview-lora"
 
 # -----------------------------
 # TOKENIZER

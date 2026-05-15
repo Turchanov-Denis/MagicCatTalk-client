@@ -1,33 +1,170 @@
+from pathlib import Path
+
+from prompt_toolkit import PromptSession
+from prompt_toolkit.completion import WordCompleter
+from prompt_toolkit.formatted_text import HTML
+from prompt_toolkit.styles import Style
+
 from rich.panel import Panel
-from utils.config import load_config
-from utils.console import console
+from rich.table import Table
+
 from codeassistant.cli.commands.setup import setup
 from codeassistant.cli.commands.prompt import prompt
-from codeassistant.inference.inference_engine import runtime
 
-items = ['setup', 'prompt', 'chat history', 'benchmark', 'exit']
+from utils.config import load_config
+from utils.console import console
+
+
+THEME = {
+    "primary": "medium_purple",
+    "text": "white",
+    "muted": "gray",
+    "border": "white",
+    "success": "green",
+    "warning": "yellow",
+    "error": "red",
+}
+
+
+COMMANDS = {
+    "/setup": "configure runtime settings",
+    "/prompt": "enter prompt mode",
+    "/chat": "select chat",
+    "/benchmark": "run benchmark suite",
+    "/exit": "quit Lorariel",
+}
+
+UNICORN = rf"""
+   *
+    \
+    \-\           ___________
+    \---\_/\.    /          _)
+   (((|||/-|))  /        __)
+  _/   ^   (()) \       )
+ ('_'    "  --   \     )
+     |     (())__/  /\__.--.
+     (      --         )\\| 
+      |     (||)  _____ |\\\\)
+     _|      ||  /      \ |||))
+ ___(/_\_  .__ _/        | (()
+/_{{______)/  /_{{__/\_____| (\__
+------------------------------------------------
+"""
+COMMAND_COMPLETER = WordCompleter(
+    COMMANDS,
+    meta_dict=COMMANDS,
+    ignore_case=True,
+    sentence=True,
+)
+
+
+PROMPT_STYLE = Style.from_dict(
+    {
+        "completion-menu":
+            f"bg:default fg:{THEME['text']}",
+
+        "completion-menu.completion":
+            f"bg:default fg:{THEME['text']}",
+
+        "completion-menu.completion.current":
+            f"bg:default fg:{THEME['text']} bold",
+
+        "completion-menu.meta.completion":
+            f"bg:default fg:{THEME['muted']}",
+
+        "completion-menu.meta.completion.current":
+            f"bg:default fg:{THEME['text']}",
+
+        "scrollbar.background": "bg:default",
+        "scrollbar.button": "bg:default",
+    }
+)
+
+
+session = PromptSession(
+    completer=COMMAND_COMPLETER,
+    complete_while_typing=True,
+    style=PROMPT_STYLE,
+)
+
+
+def get_relative_directory() -> str:
+    current = Path.cwd()
+
+    try:
+        home = Path.home()
+
+        relative = f"~\\{current.relative_to(home)}"
+
+        return relative.replace("/", "\\")
+
+    except ValueError:
+        return str(current)
+
 
 def print_home():
     config = load_config()
+
     model_name = config.get("model_id", "Not set")
     lora_name = config.get("lora_path", "Not set")
-    menu = '\n'.join(f'[{i + 1}] {item}' for i, item in enumerate(items))
 
-    content = f"[bold blue]Model:[/bold blue] {model_name}\n\n"+ f"[bold blue]Lora:[/bold blue] {lora_name}\n\n" + menu
+    current_dir = get_relative_directory()
+
+    table = Table(
+        show_header=False,
+        box=None,
+        padding=(0, 0, 0, 1),
+        expand=False,
+    )
+
+    table.add_column(
+        style=f"bold {THEME['primary']}",
+        no_wrap=True,
+    )
+
+    table.add_column(
+        style=THEME["text"],
+    )
+
+    for cmd, desc in COMMANDS.items():
+        table.add_row(cmd, desc)
+
+    header = (
+        f"[{THEME['primary']}]{UNICORN}[/{THEME['primary']}]\n"
+
+        f"[bold {THEME['primary']}]model[/bold {THEME['primary']}]"
+        f"      {model_name}\n"
+
+        f"[bold {THEME['primary']}]lora[/bold {THEME['primary']}]"
+        f"       {lora_name}\n"
+
+        f"[bold {THEME['primary']}]directory[/bold {THEME['primary']}]"
+        f"   {current_dir}\n\n"
+
+        f"[dim]Tips:[/dim] write prompt "
+        f"[{THEME['primary']}]opt.[/{THEME['primary']}] "
+        f"-f file -s 10:20 "
+        f"or type "
+        f"[{THEME['primary']}]\"/\"[/{THEME['primary']}]"
+    )
+
+    console.print()
 
     console.print(
         Panel.fit(
-            content,
-            title="Lorariel",
-            padding=(0, 2)
+            header,
+            title=(
+                f"[bold {THEME['text']}]"
+                f"Lorariel"
+                f"[/bold {THEME['text']}]"
+            ),
+            border_style=THEME["border"],
+            padding=(1, 2),
         )
     )
 
-
-def print_home_briefly():
-    menu_line = "  ".join(f"[{i + 1}] {item}" for i, item in enumerate(items))
-
-    console.print(Panel.fit(menu_line, title="AI Assistant"))
+    console.print(table)
+    console.print()
 
 
 def parse_prompt_input(raw: str):
@@ -38,6 +175,7 @@ def parse_prompt_input(raw: str):
     lines = None
 
     i = 0
+
     while i < len(parts):
 
         if parts[i] == "-f":
@@ -48,7 +186,9 @@ def parse_prompt_input(raw: str):
         if parts[i] == "-s":
             start = parts[i + 1]
             end = parts[i + 2]
+
             lines = f"{start}:{end}"
+
             i += 3
             continue
 
@@ -58,91 +198,163 @@ def parse_prompt_input(raw: str):
     return " ".join(text), file, lines
 
 
+def run_prompt_mode():
+    console.print(
+        Panel.fit(
+            (
+                f"[bold {THEME['success']}]"
+                f"Prompt mode"
+                f"[/bold {THEME['success']}]\n\n"
+
+                "Example:\n"
+                "› explain this code -f main.py -s 20 30\n\n"
+
+                "[bold]Flags[/bold]\n"
+                "-f   file path\n"
+                "-s   start end"
+            ),
+            border_style=THEME["border"],
+        )
+    )
+
+    while True:
+        raw = session.prompt(
+            HTML(
+                f"<ansi{THEME['primary']}>"
+                f"prompt"
+                f"</ansi{THEME['primary']}> › "
+            )
+        ).strip()
+
+        if raw.lower() in ["exit", "/exit"]:
+            break
+
+        if not raw:
+            continue
+
+        text, file, lines = parse_prompt_input(raw)
+
+        prompt(
+            text=text,
+            file=file,
+            lines=lines,
+        )
+
+
+def run_chat_mode():
+    # chats = runtime._chat_store.list_chats()
+    #
+    # console.print(
+    #     f"\n[bold {THEME['primary']}]Chats[/bold {THEME['primary']}]\n"
+    # )
+    #
+    # if chats:
+    #     for i, chat in enumerate(chats, start=1):
+    #         console.print(
+    #             f"[{THEME['success']}][{i}]"
+    #             f"[/{THEME['success']}] "
+    #
+    #             f"{chat['name']} "
+    #
+    #             f"[dim]"
+    #             f"({chat.get('created_at', 'unknown')})"
+    #             f"[/dim]"
+    #         )
+    # else:
+    #     console.print(
+    #         f"[{THEME['warning']}]"
+    #         f"No chats found"
+    #         f"[/{THEME['warning']}]"
+    #     )
+    #
+    # console.print(
+    #     "\n[dim]Enter chat name to switch/create[/dim]\n"
+    # )
+    #
+    # name = session.prompt(
+    #     HTML(
+    #         f"<ansi{THEME['primary']}>"
+    #         f"chat"
+    #         f"</ansi{THEME['primary']}> › "
+    #     )
+    # ).strip()
+    #
+    # if not name:
+    #     console.print(
+    #         f"[{THEME['error']}]"
+    #         f"Empty chat name"
+    #         f"[/{THEME['error']}]"
+    #     )
+    #     return
+    #
+    # runtime._chat_store.register_chat(name)
+    # runtime.load_chat(name)
+    #
+    # console.print(
+    #     f"\n[{THEME['success']}]"
+    #     f"Switched to chat:"
+    #     f"[/{THEME['success']}] "
+    #     f"{name}\n"
+    # )
+    console.print("chat")
+
+
 def run_tui():
     print_home()
 
     while True:
-        cmd = input("› ").strip()
+        try:
+            cmd = session.prompt(
+                HTML(
+                    f"<ansi{THEME['primary']}>"
+                    f"❯"
+                    f"</ansi{THEME['primary']}> "
+                )
+            ).strip()
 
-        if cmd in ["5", "exit", "quit"]:
-            break
+            if cmd in ["5", "exit", "quit", "/exit"]:
+                break
 
-        if cmd in ["1", "setup"]:
-            setup()
-            print_home_briefly()
-            continue
+            if cmd in ["1", "setup", "/setup"]:
+                setup()
+                continue
 
-        if cmd in ["2", "prompt"]:
-            console.print("""
-            [bold green]Prompt mode[/bold green]
+            if cmd in ["2", "prompt", "/prompt"]:
+                run_prompt_mode()
+                continue
 
-            Example:
-            › explain this code -f main.py -s 20 30
+            if cmd in ["3", "chat", "/chat"]:
+                run_chat_mode()
+                continue
 
-            Flags:
-            -f file path
-            -s start end (lines)
+            if cmd in ["4", "benchmark", "/benchmark"]:
+                console.print(
+                    f"[{THEME['warning']}]"
+                    f"Benchmark mode not implemented"
+                    f"[/{THEME['warning']}]"
+                )
+                continue
 
-            Type 'exit' to leave prompt mode
-            """)
+            if cmd.startswith("/"):
+                console.print(
+                    f"[{THEME['error']}]"
+                    f"Unknown command:"
+                    f"[/{THEME['error']}] "
+                    f"{cmd}"
+                )
+                continue
 
-            while True:
-                raw = input("› ").strip()
-
-                if raw.lower() in ["exit"]:
-                    print_home_briefly()
-                    break
-
-                if not raw:
-                    continue
-
-                text, file, lines = parse_prompt_input(raw)
+            if cmd:
+                text, file, lines = parse_prompt_input(cmd)
 
                 prompt(
                     text=text,
                     file=file,
-                    lines=lines
+                    lines=lines,
                 )
 
-            continue
+        except KeyboardInterrupt:
+            break
 
-        if cmd in ["3","chat"]:
-            if cmd in ["3", "chat"]:
-                chats = runtime._chat_store.list_chats()
-
-                console.print("\n[bold cyan]Available chats:[/bold cyan]\n")
-
-                if chats:
-                    for i, c in enumerate(chats, start=1):
-                        console.print(
-                            f"[green][{i}][/green] {c['name']} "
-                            f"[dim]({c.get('created_at', 'unknown')})[/dim]"
-                        )
-                else:
-                    console.print("[yellow]No chats found[/yellow]")
-
-                console.print("\n[dim]Type new name to create a chat[/dim]\n")
-
-                name = input("Chat name: ").strip()
-
-                if not name:
-                    print("Empty chat name")
-                    continue
-
-                # -------------------------
-                # REGISTER CHAT (NEW)
-                # -------------------------
-                runtime._chat_store.register_chat(name)
-
-                # load chat
-                runtime.load_chat(name)
-
-                console.print(f"\n[green]Switched to chat:[/green] {name}\n")
-                print_home_briefly()
-                continue
-
-        if cmd in ["4", 'benchmark']:
-            print('benchmark')
-            continue
-
-        print("Unknown command:", cmd)
+        except EOFError:
+            break
