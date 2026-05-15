@@ -1,8 +1,7 @@
 import requests
 
-from rich.markdown import Markdown
-
 from utils.config import load_config
+
 from utils.files import (
     read_file,
     read_file_range
@@ -51,6 +50,14 @@ def prompt(
         .strip()
     )
 
+    if not full_prompt:
+
+        console.print(
+            "[red]Empty prompt[/red]"
+        )
+
+        return
+
     config = load_config()
 
     backend_url = config.get(
@@ -67,13 +74,23 @@ def prompt(
     if lora:
         payload["lora"] = lora
 
+    console.print(
+        {
+            "backend": backend_url,
+            "lora": lora
+        }
+    )
+
     try:
 
         response = requests.post(
-            f"{backend_url}/v1/generate",
+            f"{backend_url}/v1/generate/stream",
             json=payload,
+            stream=True,
             timeout=300
         )
+
+        response.raise_for_status()
 
     except Exception as e:
 
@@ -83,28 +100,30 @@ def prompt(
 
         return
 
-    if response.status_code != 200:
+    try:
+
+        for chunk in response.iter_content(
+            chunk_size=None,
+            decode_unicode=True
+        ):
+
+            if chunk:
+
+                console.file.write(chunk)
+                console.file.flush()
+
+    except KeyboardInterrupt:
 
         console.print(
-            f"[red]Request failed:[/red] "
-            f"{response.status_code}"
+            "\n[yellow]Generation interrupted[/yellow]"
         )
 
-        console.print(response.text)
+    except Exception as e:
 
-        return
+        console.print(
+            f"\n[red]Stream error:[/red] {e}"
+        )
 
-    data = response.json()
+    finally:
 
-    result = data["response"]
-
-    console.print(
-        {
-            "backend": backend_url,
-            "lora": lora
-        }
-    )
-
-    console.print(
-        Markdown(result)
-    )
+        console.print()
