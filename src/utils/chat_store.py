@@ -1,56 +1,153 @@
 from pathlib import Path
+
 import json
-from datetime import datetime
-from utils.config import load_config, save_config
+
+from utils.memory import (
+    should_summarize,
+    split_for_summary,
+    build_summary_prompt
+)
 
 
 class ChatStore:
-    def __init__(self, base_dir="chats"):
-        self.base_dir = Path(base_dir)
-        self.base_dir.mkdir(parents=True, exist_ok=True)
 
-    # -------------------------
-    # LOAD CHAT FILE
-    # -------------------------
-    def load(self, name: str):
-        file = self.base_dir / f"{name}.json"
+    def __init__(self):
 
-        if not file.exists():
-            return []
-
-        try:
-            return json.loads(file.read_text(encoding="utf-8"))
-        except Exception:
-            return []
-
-    # -------------------------
-    # SAVE CHAT FILE
-    # -------------------------
-    def save(self, name: str, messages):
-        file = self.base_dir / f"{name}.json"
-        file.write_text(
-            json.dumps(messages, ensure_ascii=False, indent=2), encoding="utf-8"
+        self.base_dir = (
+            Path.cwd()
+            / ".lor"
+            / "chats"
         )
 
-    # -------------------------
-    # LIST FROM CONFIG (MAIN CHANGE)
-    # -------------------------
+        self.base_dir.mkdir(
+            parents=True,
+            exist_ok=True
+        )
+
+    def path(self, name: str):
+
+        return (
+            self.base_dir
+            / f"{name}.json"
+        )
+
+    def load(self, name: str):
+
+        file = self.path(name)
+
+        if not file.exists():
+
+            return {
+                "summary": "",
+                "messages": []
+            }
+
+        try:
+
+            return json.loads(
+                file.read_text(
+                    encoding="utf-8"
+                )
+            )
+
+        except Exception:
+
+            return {
+                "summary": "",
+                "messages": []
+            }
+
+    def save(
+        self,
+        name: str,
+        data
+    ):
+
+        file = self.path(name)
+
+        file.write_text(
+            json.dumps(
+                data,
+                ensure_ascii=False,
+                indent=2
+            ),
+            encoding="utf-8"
+        )
+
+    def append(
+        self,
+        name: str,
+        role: str,
+        content: str
+    ):
+
+        data = self.load(name)
+
+        data["messages"].append({
+
+            "role": role,
+            "content": content
+        })
+
+        self.save(name, data)
+
     def list_chats(self):
-        config = load_config()
-        return config.get("chats", [])
 
-    # -------------------------
-    # REGISTER CHAT
-    # -------------------------
-    def register_chat(self, name: str):
-        config = load_config()
-        chats = config.get("chats", [])
+        return [
 
-        # already exists?
-        if any(c["name"] == name for c in chats):
+            x.stem
+
+            for x in self.base_dir.glob(
+                "*.json"
+            )
+        ]
+
+    def summarize_if_needed(
+        self,
+        name: str,
+        engine
+    ):
+
+        data = self.load(name)
+
+        messages = data["messages"]
+
+        if not should_summarize(
+            messages
+        ):
             return
 
-        chats.append({"name": name, "created_at": datetime.utcnow().isoformat()})
+        old, recent = (
+            split_for_summary(
+                messages
+            )
+        )
 
-        config["chats"] = chats
-        save_config(config)
+        prompt = (
+            build_summary_prompt(
+                old
+            )
+        )
+
+        summary = engine.generate(
+            prompt=prompt,
+            max_new_tokens=256,
+            temperature=0.1
+        )
+
+        previous = data.get(
+            "summary",
+            ""
+        )
+
+        combined = (
+            previous
+            + "\n\n"
+            + summary
+        ).strip()
+
+        data["summary"] = combined
+
+        data["messages"] = recent
+
+        self.save(name, data)
