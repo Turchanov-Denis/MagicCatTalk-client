@@ -29,8 +29,7 @@ class ChatStore:
     def save(self, name: str, messages):
         file = self.base_dir / f"{name}.json"
         file.write_text(
-            json.dumps(messages, ensure_ascii=False, indent=2),
-            encoding="utf-8"
+            json.dumps(messages, ensure_ascii=False, indent=2), encoding="utf-8"
         )
 
     # -------------------------
@@ -51,10 +50,7 @@ class ChatStore:
         if any(c["name"] == name for c in chats):
             return
 
-        chats.append({
-            "name": name,
-            "created_at": datetime.utcnow().isoformat()
-        })
+        chats.append({"name": name, "created_at": datetime.utcnow().isoformat()})
 
         config["chats"] = chats
         save_config(config)

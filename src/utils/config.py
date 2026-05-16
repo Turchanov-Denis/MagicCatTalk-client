@@ -2,14 +2,9 @@ from pathlib import Path
 
 import yaml
 
+LOR_DIR = Path.cwd() / ".lor"
 
-LOR_DIR = (
-    Path.cwd() / ".lor"
-)
-
-CONFIG_PATH = (
-    LOR_DIR / "config.yaml"
-)
+CONFIG_PATH = LOR_DIR / "config.yaml"
 
 
 def load_config():
@@ -20,16 +15,9 @@ def load_config():
 
     try:
 
-        with open(
-            CONFIG_PATH,
-            "r",
-            encoding="utf-8"
-        ) as f:
+        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
 
-            config = (
-                yaml.safe_load(f)
-                or {}
-            )
+            config = yaml.safe_load(f) or {}
 
     except Exception:
 
@@ -42,28 +30,14 @@ def load_config():
     return config
 
 
-def save_config(
-    config: dict
-):
+def save_config(config: dict):
 
-    LOR_DIR.mkdir(
-        parents=True,
-        exist_ok=True
-    )
+    LOR_DIR.mkdir(parents=True, exist_ok=True)
 
     if not config.get("lora"):
 
         config["lora"] = None
 
-    with open(
-        CONFIG_PATH,
-        "w",
-        encoding="utf-8"
-    ) as f:
+    with open(CONFIG_PATH, "w", encoding="utf-8") as f:
 
-        yaml.safe_dump(
-            config,
-            f,
-            sort_keys=False,
-            allow_unicode=True
-        )
+        yaml.safe_dump(config, f, sort_keys=False, allow_unicode=True)

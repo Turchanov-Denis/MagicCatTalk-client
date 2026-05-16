@@ -1,69 +1,30 @@
 from pathlib import Path
 
-from prompt_toolkit import (
-    PromptSession
-)
-
-from prompt_toolkit.completion import (
-    WordCompleter
-)
-
-from prompt_toolkit.formatted_text import (
-    HTML
-)
-
-from prompt_toolkit.styles import (
-    Style
-)
+from prompt_toolkit import PromptSession
+from prompt_toolkit.completion import WordCompleter
+from prompt_toolkit.formatted_text import HTML
+from prompt_toolkit.styles import Style
 
 from rich.panel import Panel
 from rich.table import Table
 
-from codeassistant.cli.commands.init import (
-    init
-)
+from codeassistant.cli.commands.init import init
+from codeassistant.cli.commands.setup import setup
+from codeassistant.cli.commands.prompt import prompt
 
-from codeassistant.cli.commands.setup import (
-    setup
-)
-
-from codeassistant.cli.commands.prompt import (
-    prompt
-)
-
-from utils.config import (
-    load_config
-)
-
-from utils.console import (
-    console
-)
-
+from utils.config import load_config
+from utils.console import console
 
 # -------------------------
 # AUTO INIT
 # -------------------------
 
-LOR_DIR = (
-    Path.cwd() / ".lor"
-)
+LOR_DIR = Path.cwd() / ".lor"
 
 if not LOR_DIR.exists():
-
     console.print()
-
-    console.print(
-        "[yellow]"
-        ".lor not found"
-        "[/yellow]"
-    )
-
-    console.print(
-        "[dim]"
-        "Initializing project..."
-        "[/dim]"
-    )
-
+    console.print("[yellow].lor not found[/yellow]")
+    console.print("[dim]Initializing project...[/dim]")
     init()
 
 
@@ -72,11 +33,7 @@ if not LOR_DIR.exists():
 # -------------------------
 
 config = load_config()
-
-THEME = config.get(
-    "theme",
-    {}
-)
+THEME = config.get("theme", {})
 
 
 # -------------------------
@@ -84,31 +41,18 @@ THEME = config.get(
 # -------------------------
 
 COMMANDS = {
-
-    "/setup":
-        "configure runtime settings",
-
-    "/prompt":
-        "enter prompt mode",
-
-    "/chat":
-        "select chat",
-
-    "/benchmark":
-        "run benchmark suite",
-
-    "/exit":
-        "quit Lorariel",
+    "/setup": "configure runtime settings",
+    "/prompt": "enter prompt mode",
+    "/chat": "select chat",
+    "/benchmark": "run benchmark suite",
+    "/exit": "quit Lorariel",
 }
 
-
-COMMAND_COMPLETER = (
-    WordCompleter(
-        COMMANDS,
-        meta_dict=COMMANDS,
-        ignore_case=True,
-        sentence=True,
-    )
+COMMAND_COMPLETER = WordCompleter(
+    COMMANDS,
+    meta_dict=COMMANDS,
+    ignore_case=True,
+    sentence=True,
 )
 
 
@@ -116,39 +60,17 @@ COMMAND_COMPLETER = (
 # STYLE
 # -------------------------
 
-PROMPT_STYLE = (
-    Style.from_dict(
-        {
-
-            "completion-menu":
-                f"bg:default "
-                f"fg:{THEME['text']}",
-
-            "completion-menu.completion":
-                f"bg:default "
-                f"fg:{THEME['text']}",
-
-            "completion-menu.completion.current":
-                f"bg:default "
-                f"fg:{THEME['text']} bold",
-
-            "completion-menu.meta.completion":
-                f"bg:default "
-                f"fg:{THEME['muted']}",
-
-            "completion-menu.meta.completion.current":
-                f"bg:default "
-                f"fg:{THEME['text']}",
-
-            "scrollbar.background":
-                "bg:default",
-
-            "scrollbar.button":
-                "bg:default",
-        }
-    )
+PROMPT_STYLE = Style.from_dict(
+    {
+        "completion-menu": f"bg:default fg:{THEME['text']}",
+        "completion-menu.completion": f"bg:default fg:{THEME['text']}",
+        "completion-menu.completion.current": f"bg:default fg:{THEME['text']} bold",
+        "completion-menu.meta.completion": f"bg:default fg:{THEME['muted']}",
+        "completion-menu.meta.completion.current": f"bg:default fg:{THEME['text']}",
+        "scrollbar.background": "bg:default",
+        "scrollbar.button": "bg:default",
+    }
 )
-
 
 session = PromptSession(
     completer=COMMAND_COMPLETER,
@@ -161,26 +83,14 @@ session = PromptSession(
 # DIRECTORY
 # -------------------------
 
-def get_relative_directory() -> str:
 
+def get_relative_directory() -> str:
     current = Path.cwd()
 
     try:
-
-        home = Path.home()
-
-        relative = (
-            f"~\\"
-            f"{current.relative_to(home)}"
-        )
-
-        return relative.replace(
-            "/",
-            "\\"
-        )
+        return f"~\\{current.relative_to(Path.home())}".replace("/", "\\")
 
     except ValueError:
-
         return str(current)
 
 
@@ -188,23 +98,9 @@ def get_relative_directory() -> str:
 # HOME
 # -------------------------
 
+
 def print_home():
-
     config = load_config()
-
-    model_name = config.get(
-        "model_id",
-        "Not set"
-    )
-
-    lora_name = config.get(
-        "lora",
-        "Not set"
-    )
-
-    current_dir = (
-        get_relative_directory()
-    )
 
     table = Table(
         show_header=False,
@@ -214,60 +110,31 @@ def print_home():
     )
 
     table.add_column(
-        style=(
-            f"bold "
-            f"{THEME['primary']}"
-        ),
+        style=f"bold {THEME['primary']}",
         no_wrap=True,
     )
 
-    table.add_column(
-        style=THEME["text"],
-    )
+    table.add_column(style=THEME["text"])
 
-    for cmd, desc in (
-        COMMANDS.items()
-    ):
-
-        table.add_row(
-            cmd,
-            desc
-        )
+    for cmd, desc in COMMANDS.items():
+        table.add_row(cmd, desc)
 
     header = (
-
         f"[{THEME['primary']}]"
         f"{config.get('character_ASCII', '')}"
         f"[/{THEME['primary']}]\n"
-
-        f"[bold {THEME['primary']}]"
-        f"model"
-        f"[/bold {THEME['primary']}]"
-        f"      {model_name}\n"
-
-        f"[bold {THEME['primary']}]"
-        f"lora"
-        f"[/bold {THEME['primary']}]"
-        f"       {lora_name}\n"
-
-        f"[bold {THEME['primary']}]"
-        f"directory"
-        f"[/bold {THEME['primary']}]"
-        f"   {current_dir}\n\n"
-
+        f"[bold {THEME['primary']}]model[/bold {THEME['primary']}]"
+        f"      {config.get('model_id', 'Not set')}\n"
+        f"[bold {THEME['primary']}]lora[/bold {THEME['primary']}]"
+        f"       {config.get('lora', 'Not set')}\n"
+        f"[bold {THEME['primary']}]directory[/bold {THEME['primary']}]"
+        f"   {get_relative_directory()}\n\n"
         f"[dim]Tips:[/dim] "
         f"write prompt "
-
-        f"[{THEME['primary']}]"
-        f"opt."
-        f"[/{THEME['primary']}] "
-
+        f"[{THEME['primary']}]opt.[/{THEME['primary']}] "
         f"-f file -s 10:20 "
         f"or type "
-
-        f"[{THEME['primary']}]"
-        f"\"/\""
-        f"[/{THEME['primary']}]"
+        f"[{THEME['primary']}]\"/\"[/{THEME['primary']}]"
     )
 
     console.print()
@@ -276,17 +143,11 @@ def print_home():
         Panel.fit(
             header,
             title=(
-                f"[bold "
-                f"{THEME['text']}]"
-
+                f"[bold {THEME['text']}]"
                 f"{config.get('assistant_name', '')}"
-
-                f"[/bold "
-                f"{THEME['text']}]"
+                f"[/bold {THEME['text']}]"
             ),
-            border_style=(
-                THEME["border"]
-            ),
+            border_style=THEME["border"],
             padding=(1, 2),
         )
     )
@@ -299,14 +160,11 @@ def print_home():
 # PARSE
 # -------------------------
 
-def parse_prompt_input(
-    raw: str
-):
 
+def parse_prompt_input(raw: str):
     parts = raw.split()
 
     text = []
-
     file = None
     lines = None
 
@@ -315,97 +173,56 @@ def parse_prompt_input(
     while i < len(parts):
 
         if parts[i] == "-f":
-
             file = parts[i + 1]
-
             i += 2
-
             continue
 
         if parts[i] == "-s":
-
-            start = parts[i + 1]
-            end = parts[i + 2]
-
-            lines = (
-                f"{start}:{end}"
-            )
-
+            lines = f"{parts[i + 1]}:{parts[i + 2]}"
             i += 3
-
             continue
 
         text.append(parts[i])
-
         i += 1
 
-    return (
-        " ".join(text),
-        file,
-        lines
-    )
+    return " ".join(text), file, lines
 
 
 # -------------------------
 # PROMPT MODE
 # -------------------------
 
-def run_prompt_mode():
 
+def run_prompt_mode():
     console.print(
         Panel.fit(
             (
-                f"[bold "
-                f"{THEME['success']}]"
-
+                f"[bold {THEME['success']}]"
                 f"Prompt mode"
-
-                f"[/bold "
-                f"{THEME['success']}]\n\n"
-
+                f"[/bold {THEME['success']}]\n\n"
                 "Example:\n"
-                "› explain this code "
-                "-f main.py -s 20 30\n\n"
-
+                "› explain this code -f main.py -s 20 30\n\n"
                 "[bold]Flags[/bold]\n"
-
                 "-f   file path\n"
                 "-s   start end"
             ),
-            border_style=(
-                THEME["border"]
-            ),
+            border_style=THEME["border"],
         )
     )
 
     while True:
 
         raw = session.prompt(
-            HTML(
-                f"<ansi"
-                f"{THEME['primary']}>"
-
-                f"prompt"
-
-                f"</ansi"
-                f"{THEME['primary']}> › "
-            )
+            HTML(f"<ansi{THEME['primary']}>" f"prompt" f"</ansi{THEME['primary']}> › ")
         ).strip()
 
-        if raw.lower() in [
-            "exit",
-            "/exit"
-        ]:
-
+        if raw.lower() in ["exit", "/exit"]:
             break
 
         if not raw:
-
             continue
 
-        text, file, lines = (
-            parse_prompt_input(raw)
-        )
+        text, file, lines = parse_prompt_input(raw)
 
         prompt(
             text=text,
@@ -418,8 +235,8 @@ def run_prompt_mode():
 # CHAT
 # -------------------------
 
-def run_chat_mode():
 
+def run_chat_mode():
     console.print("chat")
 
 
@@ -427,8 +244,8 @@ def run_chat_mode():
 # MAIN LOOP
 # -------------------------
 
-def run_tui():
 
+def run_tui():
     print_home()
 
     while True:
@@ -436,114 +253,42 @@ def run_tui():
         try:
 
             cmd = session.prompt(
-                HTML(
-                    f"<ansi"
-                    f"{THEME['primary']}>"
-
-                    f"❯"
-
-                    f"</ansi"
-                    f"{THEME['primary']}> "
-                )
+                HTML(f"<ansi{THEME['primary']}>" f"❯" f"</ansi{THEME['primary']}> ")
             ).strip()
 
-            # -------------------------
-            # EXIT
-            # -------------------------
-
-            if cmd in [
-                "exit",
-                "quit",
-                "/exit"
-            ]:
-
+            if cmd in ["exit", "quit", "/exit"]:
                 break
 
-            # -------------------------
-            # SETUP
-            # -------------------------
-
-            if cmd in [
-                "setup",
-                "/setup"
-            ]:
-
+            if cmd in ["setup", "/setup"]:
                 setup()
-
                 continue
 
-            # -------------------------
-            # PROMPT
-            # -------------------------
-
-            if cmd in [
-                "prompt",
-                "/prompt"
-            ]:
-
+            if cmd in ["prompt", "/prompt"]:
                 run_prompt_mode()
-
                 continue
 
-            # -------------------------
-            # CHAT
-            # -------------------------
-
-            if cmd in [
-                "chat",
-                "/chat"
-            ]:
-
+            if cmd in ["chat", "/chat"]:
                 run_chat_mode()
-
                 continue
 
-            # -------------------------
-            # BENCHMARK
-            # -------------------------
-
-            if cmd in [
-                "benchmark",
-                "/benchmark"
-            ]:
-
+            if cmd in ["benchmark", "/benchmark"]:
                 console.print(
                     f"[{THEME['warning']}]"
-
-                    f"Benchmark mode "
-                    f"not implemented"
-
+                    f"Benchmark mode not implemented"
                     f"[/{THEME['warning']}]"
                 )
-
                 continue
-
-            # -------------------------
-            # UNKNOWN
-            # -------------------------
 
             if cmd.startswith("/"):
-
                 console.print(
                     f"[{THEME['error']}]"
-
                     f"Unknown command:"
-
-                    f"[/{THEME['error']}] "
-                    f"{cmd}"
+                    f"[/{THEME['error']}] {cmd}"
                 )
-
                 continue
 
-            # -------------------------
-            # DIRECT PROMPT
-            # -------------------------
-
             if cmd:
-
-                text, file, lines = (
-                    parse_prompt_input(cmd)
-                )
+                text, file, lines = parse_prompt_input(cmd)
 
                 prompt(
                     text=text,
@@ -551,10 +296,5 @@ def run_tui():
                     lines=lines,
                 )
 
-        except KeyboardInterrupt:
-
-            break
-
-        except EOFError:
-
+        except (KeyboardInterrupt, EOFError):
             break
