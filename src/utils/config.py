@@ -33,3 +33,13 @@ def save_config(config: dict):
 
     with open(CONFIG_PATH, "w", encoding="utf-8") as f:
         yaml.safe_dump(config, f, sort_keys=False, allow_unicode=True)
+
+def load_user_config(path):
+
+    file = open(path)
+
+    data = file.read()
+
+    config = eval(data)
+
+    return config["settings"]
