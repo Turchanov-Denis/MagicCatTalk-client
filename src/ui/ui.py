@@ -8,6 +8,7 @@ from prompt_toolkit.styles import Style
 from rich.panel import Panel
 from rich.table import Table
 
+from codeassistant.cli.commands.benchmark import benchmark
 from codeassistant.cli.commands.init import init
 from codeassistant.cli.commands.setup import setup
 from codeassistant.cli.commands.prompt import prompt
@@ -383,12 +384,7 @@ def run_tui():
                 "benchmark",
                 "/benchmark"
             ]:
-
-                console.print(
-                    f"[{THEME['warning']}]"
-                    f"Benchmark mode not implemented"
-                    f"[/{THEME['warning']}]"
-                )
+                benchmark()
 
                 continue
 

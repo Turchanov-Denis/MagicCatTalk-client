@@ -1,0 +1,127 @@
+[
+  {
+    "id": "null_access",
+
+    "bugs": [
+      "possible none access"
+    ],
+
+    "code":
+"def get_username(user):\n    return user.name"
+  },
+
+  {
+    "id": "division_by_zero",
+
+    "bugs": [
+      "division by zero"
+    ],
+
+    "code":
+"def divide(a, b):\n    return a / b"
+  },
+
+  {
+    "id": "list_index",
+
+    "bugs": [
+      "index out of range"
+    ],
+
+    "code":
+"def get_first(items):\n    return items[0]"
+  },
+
+  {
+    "id": "mutable_default",
+
+    "bugs": [
+      "mutable default argument"
+    ],
+
+    "code":
+"def add_item(item, items=[]):\n    items.append(item)\n    return items"
+  },
+
+  {
+    "id": "infinite_recursion",
+
+    "bugs": [
+      "infinite recursion"
+    ],
+
+    "code":
+"def recurse():\n    return recurse()"
+  },
+
+  {
+    "id": "sql_injection",
+
+    "bugs": [
+      "sql injection"
+    ],
+
+    "code":
+"def find_user(name):\n    query = f\"SELECT * FROM users WHERE name = '{name}'\"\n    return query"
+  },
+
+  {
+    "id": "unsafe_eval",
+
+    "bugs": [
+      "unsafe eval"
+    ],
+
+    "code":
+"def run(expr):\n    return eval(expr)"
+  },
+
+  {
+    "id": "file_leak",
+
+    "bugs": [
+      "file resource leak"
+    ],
+
+    "code":
+"def read_file(path):\n    f = open(path)\n    return f.read()"
+  },
+
+  {
+    "id": "bare_except",
+
+    "bugs": [
+      "bare except"
+    ],
+
+    "code":
+"def parse_int(x):\n    try:\n        return int(x)\n    except:\n        return 0"
+  },
+
+  {
+    "id": "clean_function",
+
+    "bugs": [],
+
+    "code":
+"def add(a, b):\n    return a + b"
+  },
+
+  {
+    "id": "clean_loop",
+
+    "bugs": [],
+
+    "code":
+"def sum_items(items):\n    total = 0\n    for item in items:\n        total += item\n    return total"
+  },
+
+  {
+    "id": "clean_class",
+
+    "bugs": [],
+
+    "code":
+"class User:\n    def __init__(self, name):\n        self.name = name"
+  }
+]

@@ -1,4 +1,3 @@
-import typer
 from ui.ui import run_tui
 
 
