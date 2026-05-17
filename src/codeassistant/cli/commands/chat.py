@@ -1,16 +1,8 @@
-from utils.chat_store import (
-    ChatStore
-)
+from utils.chat_store import ChatStore
 
-from utils.config import (
-    load_config,
-    save_config
-)
+from utils.config import load_config, save_config
 
-from utils.console import (
-    console
-)
-
+from utils.console import console
 
 store = ChatStore()
 
@@ -19,9 +11,7 @@ def select_chat():
 
     config = load_config()
 
-    active = config.get(
-        "active_chat"
-    )
+    active = config.get("active_chat")
 
     chats = store.list_chats()
 
@@ -29,36 +19,19 @@ def select_chat():
 
     if chats:
 
-        for i, name in enumerate(
-            chats,
-            start=1
-        ):
+        for i, name in enumerate(chats, start=1):
 
-            marker = (
-                "*"
-                if name == active
-                else " "
-            )
+            marker = "*" if name == active else " "
 
-            console.print(
-                f"[{i}] "
-                f"{marker} "
-                f"{name}"
-            )
+            console.print(f"[{i}] " f"{marker} " f"{name}")
 
     else:
 
-        console.print(
-            "[yellow]"
-            "No chats"
-            "[/yellow]"
-        )
+        console.print("[yellow]" "No chats" "[/yellow]")
 
     console.print()
 
-    name = input(
-        "Chat name: "
-    ).strip()
+    name = input("Chat name: ").strip()
 
     if not name:
         return
@@ -67,9 +40,4 @@ def select_chat():
 
     save_config(config)
 
-    console.print(
-        f"[green]"
-        f"Active chat:"
-        f"[/green] "
-        f"{name}"
-    )
+    console.print(f"[green]" f"Active chat:" f"[/green] " f"{name}")

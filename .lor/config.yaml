@@ -14,7 +14,7 @@ theme:
   error: red
 backend_url: http://localhost:8000
 model_id: Qwen/Qwen2.5-Coder-3B-Instruct
-lora: null
+lora: codereview-lora
 active_chat: Lord
 memory:
   max_context_tokens: 4096

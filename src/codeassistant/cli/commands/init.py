@@ -17,9 +17,7 @@ CONFIG_PATH = LOR_DIR / "config.yaml"
 
 
 DEFAULT_CONFIG = {
-
     "assistant_name": "Lorariel",
-
     "character_ASCII": (
         "*\n"
         " \\\n"
@@ -36,51 +34,31 @@ DEFAULT_CONFIG = {
         "___(/_\\_  .__ _/        | (())\n"
         "/_{{______)/  /_{{__/\\\\_____| (\\\\__"
     ),
-
     "theme": {
-
         "primary": "medium_purple",
-
         "text": "white",
-
         "muted": "gray",
-
         "border": "white",
-
         "success": "green",
-
         "warning": "yellow",
-
         "error": "red",
     },
-
-    "backend_url":
-        "http://localhost:8000",
-
-    "model_id":
-        "Qwen/Qwen2.5-Coder-3B-Instruct",
-
-    "lora":
-        None,
-
-    "active_chat":
-        "default",
-
+    "backend_url": "http://localhost:8000",
+    "model_id": "Qwen/Qwen2.5-Coder-3B-Instruct",
+    "lora": None,
+    "active_chat": "default",
     "memory": {
-
         # сколько максимум токенов
         # отправляется модели
         "max_context_tokens": 4096,
-
         # когда история превышает:
         # max_context_tokens +
         # summary_trigger_tokens
         # запускается summarize
         "summary_trigger_tokens": 2048,
-
         # максимальный размер summary
         "summary_max_tokens": 256,
-    }
+    },
 }
 
 
