@@ -22,23 +22,22 @@ from utils.memory import (
     build_prompt
 )
 
-
 store = ChatStore()
 
 
 def prompt(
-    text: str = "",
-    file: str = None,
-    lines: str = None
+        text: str = "",
+        file: str = None,
+        lines: str = None,
+        use_chat: bool = True
 ):
-
     content = ""
 
     if file:
 
         if (
-            lines
-            and ":" in lines
+                lines
+                and ":" in lines
         ):
 
             start, end = map(
@@ -74,7 +73,6 @@ def prompt(
     )
 
     if not user_prompt:
-
         console.print(
             "[red]"
             "Empty prompt"
@@ -93,34 +91,39 @@ def prompt(
         "lora"
     )
 
+    final_prompt = user_prompt
+
     chat_name = config.get(
         "active_chat",
         "default"
     )
 
-    data = store.load(
-        chat_name
-    )
+    if use_chat:
+        data = store.load(
+            chat_name
+        )
 
-    recent = build_recent_window(
-        data["messages"]
-    )
+        recent = build_recent_window(
+            data["messages"]
+        )
 
-    final_prompt = build_prompt(
-        summary=data.get(
-            "summary",
-            ""
-        ),
-        messages=recent,
-        current_prompt=user_prompt
-    )
+        final_prompt = build_prompt(
+
+            summary=data.get(
+                "summary",
+                ""
+            ),
+
+            messages=recent,
+
+            current_prompt=user_prompt
+        )
 
     payload = {
         "prompt": final_prompt
     }
 
     if lora:
-
         payload["lora"] = lora
 
     response_text = ""
@@ -149,12 +152,11 @@ def prompt(
     try:
 
         for chunk in response.iter_content(
-            chunk_size=None,
-            decode_unicode=True
+                chunk_size=None,
+                decode_unicode=True
         ):
 
             if chunk:
-
                 response_text += chunk
 
                 console.file.write(
@@ -183,14 +185,15 @@ def prompt(
 
         console.print()
 
-    store.append(
-        chat_name,
-        "user",
-        user_prompt
-    )
+    if use_chat:
+        store.append(
+            chat_name,
+            "user",
+            user_prompt
+        )
 
-    store.append(
-        chat_name,
-        "assistant",
-        response_text
-    )
+        store.append(
+            chat_name,
+            "assistant",
+            response_text
+        )

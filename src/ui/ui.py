@@ -9,6 +9,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from codeassistant.cli.commands.benchmark import benchmark
+from codeassistant.cli.commands.code_review import code_review
 from codeassistant.cli.commands.init import init
 from codeassistant.cli.commands.setup import setup
 from codeassistant.cli.commands.prompt import prompt
@@ -17,11 +18,9 @@ from codeassistant.cli.commands.chat import select_chat
 from utils.config import load_config
 from utils.console import console
 
-
 LOR_DIR = Path.cwd() / ".lor"
 
 if not LOR_DIR.exists():
-
     console.print()
 
     console.print(
@@ -34,14 +33,12 @@ if not LOR_DIR.exists():
 
     init()
 
-
 config = load_config()
 
 THEME = config.get(
     "theme",
     {}
 )
-
 
 COMMANDS = {
 
@@ -57,10 +54,11 @@ COMMANDS = {
     "/benchmark":
         "run benchmark suite",
 
+    "/code-review":
+        "review last git commit",
     "/exit":
         "quit Lorariel",
 }
-
 
 COMMAND_COMPLETER = WordCompleter(
     COMMANDS,
@@ -68,7 +66,6 @@ COMMAND_COMPLETER = WordCompleter(
     ignore_case=True,
     sentence=True,
 )
-
 
 PROMPT_STYLE = Style.from_dict(
     {
@@ -96,7 +93,6 @@ PROMPT_STYLE = Style.from_dict(
     }
 )
 
-
 session = PromptSession(
     completer=COMMAND_COMPLETER,
     complete_while_typing=True,
@@ -105,7 +101,6 @@ session = PromptSession(
 
 
 def get_relative_directory() -> str:
-
     current = Path.cwd()
 
     try:
@@ -121,7 +116,6 @@ def get_relative_directory() -> str:
 
 
 def print_home():
-
     config = load_config()
 
     table = Table(
@@ -141,7 +135,6 @@ def print_home():
     )
 
     for cmd, desc in COMMANDS.items():
-
         table.add_row(
             cmd,
             desc
@@ -219,9 +212,8 @@ def print_home():
 
 
 def parse_prompt_input(
-    raw: str
+        raw: str
 ):
-
     parts = raw.split()
 
     text = []
@@ -234,7 +226,6 @@ def parse_prompt_input(
     while i < len(parts):
 
         if parts[i] == "-f":
-
             file = parts[i + 1]
 
             i += 2
@@ -242,7 +233,6 @@ def parse_prompt_input(
             continue
 
         if parts[i] == "-s":
-
             lines = (
                 f"{parts[i + 1]}"
                 f":"
@@ -265,7 +255,6 @@ def parse_prompt_input(
 
 
 def run_prompt_mode():
-
     console.print(
         Panel.fit(
             (
@@ -307,7 +296,6 @@ def run_prompt_mode():
             "exit",
             "/exit"
         ]:
-
             break
 
         if not raw:
@@ -325,12 +313,10 @@ def run_prompt_mode():
 
 
 def run_chat_mode():
-
     select_chat()
 
 
 def run_tui():
-
     print_home()
 
     while True:
@@ -350,14 +336,12 @@ def run_tui():
                 "quit",
                 "/exit"
             ]:
-
                 break
 
             if cmd in [
                 "setup",
                 "/setup"
             ]:
-
                 setup()
 
                 continue
@@ -366,7 +350,6 @@ def run_tui():
                 "prompt",
                 "/prompt"
             ]:
-
                 run_prompt_mode()
 
                 continue
@@ -375,7 +358,6 @@ def run_tui():
                 "chat",
                 "/chat"
             ]:
-
                 run_chat_mode()
 
                 continue
@@ -388,8 +370,15 @@ def run_tui():
 
                 continue
 
-            if cmd.startswith("/"):
+            if cmd in [
+                "code-review",
+                "/code-review"
+            ]:
+                code_review()
 
+                continue
+
+            if cmd.startswith("/"):
                 console.print(
                     f"[{THEME['error']}]"
                     f"Unknown command:"
@@ -399,8 +388,8 @@ def run_tui():
 
                 continue
 
-            if cmd:
 
+            if cmd:
                 text, file, lines = (
                     parse_prompt_input(cmd)
                 )
@@ -412,8 +401,8 @@ def run_tui():
                 )
 
         except (
-            KeyboardInterrupt,
-            EOFError
+                KeyboardInterrupt,
+                EOFError
         ):
 
             break

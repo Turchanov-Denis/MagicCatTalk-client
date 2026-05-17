@@ -1,9 +1,6 @@
-import json
-
 from transformers import (
     AutoTokenizer
 )
-
 from utils.config import (
     load_config
 )

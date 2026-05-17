@@ -2,16 +2,11 @@ import requests
 import typer
 
 from rich.markdown import Markdown
-
 from huggingface_hub import HfApi
-
 from utils.console import console
-
 from utils.config import load_config, save_config
 
-
 def validate_hf_model(repo_id: str) -> bool:
-
     try:
 
         HfApi().model_info(repo_id)
@@ -24,7 +19,6 @@ def validate_hf_model(repo_id: str) -> bool:
 
 
 def fetch_loras(backend_url: str):
-
     try:
 
         response = requests.get(f"{backend_url}/v1/loras", timeout=10)
@@ -43,7 +37,6 @@ def fetch_loras(backend_url: str):
 
 
 def fetch_lora_info(backend_url: str, name: str):
-
     try:
 
         response = requests.get(f"{backend_url}/v1/loras/{name}", timeout=10)
@@ -60,7 +53,6 @@ def fetch_lora_info(backend_url: str, name: str):
 
 
 def lora_menu(config, backend_url, lora_name):
-
     while True:
 
         console.print(f"\n[bold cyan]{lora_name}[/bold cyan]\n")
@@ -82,13 +74,11 @@ def lora_menu(config, backend_url, lora_name):
             info = fetch_lora_info(backend_url, lora_name)
 
             if not info:
-
                 return
 
             readme = info.get("readme")
 
             if not readme:
-
                 console.print("\n[yellow]README not found[/yellow]\n")
 
                 continue
@@ -106,7 +96,6 @@ def lora_menu(config, backend_url, lora_name):
         # -------------------------
 
         if choice == 2:
-
             config["lora"] = lora_name
 
             save_config(config)
@@ -124,7 +113,6 @@ def lora_menu(config, backend_url, lora_name):
 
 
 def setup():
-
     config = load_config() or {}
 
     backend_url = config.get("backend_url", "http://localhost:8000")
@@ -132,7 +120,6 @@ def setup():
     console.print("\n[bold cyan]Lorariel Setup[/bold cyan]\n")
 
     if config.get("model_id"):
-
         console.print(f"[green]Current model:[/green] " f"{config['model_id']}")
 
     console.print(f"[green]Current LoRA:[/green] " f"{config.get('lora')}\n")
@@ -158,7 +145,6 @@ def setup():
         repo_id = typer.prompt("Enter HF model " "(e.g. Qwen/Qwen2.5-Coder-3B)").strip()
 
         if not repo_id:
-
             console.print("[red]Empty model id[/red]")
 
             return
@@ -187,7 +173,6 @@ def setup():
         loras = fetch_loras(backend_url)
 
         if not loras:
-
             console.print("\n[yellow]No compatible LoRAs found[/yellow]\n")
 
             return
@@ -195,7 +180,6 @@ def setup():
         console.print("\n[bold]Available LoRAs:[/bold]\n")
 
         for index, lora in enumerate(loras, start=1):
-
             name = lora["name"]
 
             console.print(f"[{index}] " f"{name} ")
@@ -205,7 +189,6 @@ def setup():
         selected = typer.prompt("Select LoRA", type=int)
 
         if selected < 1 or selected > len(loras):
-
             console.print("[red]Invalid selection[/red]")
 
             return
@@ -221,7 +204,6 @@ def setup():
     # -------------------------
 
     if choice == 3:
-
         config["lora"] = None
 
         save_config(config)

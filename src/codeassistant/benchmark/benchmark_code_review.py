@@ -1,10 +1,10 @@
-# benchmark/benchmark_code_review.py
-
 import json
 import time
 import re
 
 from pathlib import Path
+
+from rapidfuzz import fuzz
 
 
 TASKS_PATH = (
@@ -54,6 +54,9 @@ Code:
 """
 
 
+FUZZY_THRESHOLD = 80
+
+
 BUG_ALIASES = {
 
     "possible none access": [
@@ -89,7 +92,8 @@ BUG_ALIASES = {
         "default argument",
         "items=[]",
         "items = []",
-        "none"
+        "items=None",
+        "items = None"
     ],
 
     "infinite recursion": [
@@ -122,7 +126,8 @@ BUG_ALIASES = {
         "file leak",
         "open(",
         "missing close",
-        "context manager"
+        "context manager",
+        "with open"
     ],
 
     "bare except": [
@@ -130,6 +135,34 @@ BUG_ALIASES = {
         "bare except",
         "except:",
         "generic exception"
+    ]
+}
+
+
+FIX_PATTERNS = {
+
+    "mutable default argument": [
+
+        "items=None",
+        "items = None"
+    ],
+
+    "file resource leak": [
+
+        "with open"
+    ],
+
+    "division by zero": [
+
+        "if b == 0",
+        "if b != 0",
+        "ZeroDivisionError"
+    ],
+
+    "bare except": [
+
+        "except ValueError",
+        "except Exception"
     ]
 }
 
@@ -187,6 +220,47 @@ def clean_response(
     return text.strip()
 
 
+def fuzzy_contains(
+    response,
+    phrase
+):
+
+    response = response.lower()
+
+    phrase = phrase.lower()
+
+    score = fuzz.partial_ratio(
+        phrase,
+        response
+    )
+
+    return (
+        score >= FUZZY_THRESHOLD
+    )
+
+
+def contains_fix(
+    response,
+    bug
+):
+
+    patterns = FIX_PATTERNS.get(
+        bug,
+        []
+    )
+
+    for pattern in patterns:
+
+        if fuzzy_contains(
+            response,
+            pattern
+        ):
+
+            return True
+
+    return False
+
+
 def evaluate_task(
     response,
     expected_bugs
@@ -228,13 +302,29 @@ def evaluate_task(
             [bug]
         )
 
+        detected = False
+
         for alias in aliases:
 
-            if alias.lower() in response_lower:
+            if fuzzy_contains(
+                response,
+                alias
+            ):
 
-                found.append(bug)
+                detected = True
 
                 break
+
+        if not detected:
+
+            detected = contains_fix(
+                response,
+                bug
+            )
+
+        if detected:
+
+            found.append(bug)
 
     success = (
         len(found)
