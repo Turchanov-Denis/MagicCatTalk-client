@@ -27,17 +27,17 @@ from utils.logger import logger
 store = ChatStore()
 
 
-SYSTEM_PROMPT = """
-You are a code assistant.
-
-Rules:
-- Answer ONLY using provided context
-- Do NOT invent code
-- Do NOT hallucinate architecture
-- If information is missing say:
-  "Not enough context"
-- Focus ONLY on provided code
-""".strip()
+# SYSTEM_PROMPT = """
+# You are a code assistant.
+#
+# Rules:
+# - Answer ONLY using provided context
+# - Do NOT invent code
+# - Do NOT hallucinate architecture
+# - If information is missing say:
+#   "Not enough context"
+# - Focus ONLY on provided code
+# """.strip()
 
 
 def extract_mentions(text: str):
@@ -226,7 +226,7 @@ Content:
 
     final_prompt = (
 
-        f"{SYSTEM_PROMPT}\n\n"
+        # f"{SYSTEM_PROMPT}\n\n"
 
         f"{user_prompt}"
     )
@@ -236,142 +236,63 @@ Content:
         "default"
     )
 
-    if use_chat and not code_query:
+    if use_chat:
+        data = store.load(chat_name)
 
-        data = store.load(
-            chat_name
-        )
-
-        recent = build_recent_window(
-            data["messages"]
-        )
+        recent = build_recent_window(data["messages"])
 
         final_prompt = build_prompt(
-
-            summary=data.get(
-                "summary",
-                ""
-            ),
-
-            messages=recent,
-
-            current_prompt=final_prompt
+            summary=data.get("summary", ""), messages=recent, current_prompt=user_prompt
         )
 
-    logger.info(
-        f"Request:\n{final_prompt}"
-    )
-
-    payload = {
-
-        "prompt": final_prompt
-    }
+    payload = {"prompt": final_prompt}
 
     if lora:
-
         payload["lora"] = lora
 
     response_text = ""
-
+    logger.info(f"Sending prompt to backend: {payload}")
     try:
 
-        logger.info(
-            f"Sending request to backend: "
-            f"{backend_url}/v1/generate/stream"
-        )
-
         response = requests.post(
-
-            f"{backend_url}/v1/generate/stream",
-
-            json=payload,
-
-            stream=True,
-
-            timeout=300
+            f"{backend_url}/v1/generate/stream", json=payload, stream=True, timeout=300
         )
 
         response.raise_for_status()
 
-        logger.info(
-            "Backend connection established"
-        )
-
     except Exception as e:
 
-        console.print(
-
-            f"[red]"
-            f"Backend error:"
-            f"[/red] {e}"
-        )
+        console.print(f"[red]" f"Backend error:" f"[/red] {e}")
 
         return
 
     try:
-
-        for chunk in response.iter_content(
-
-                chunk_size=None,
-
-                decode_unicode=True
-        ):
+        logger.info(f"responce: {response}")
+        for chunk in response.iter_content(chunk_size=None, decode_unicode=True):
 
             if chunk:
-
                 response_text += chunk
 
-                console.file.write(
-                    chunk
-                )
+                console.file.write(chunk)
 
                 console.file.flush()
 
     except KeyboardInterrupt:
 
-        console.print(
-
-            "\n[yellow]"
-            "Generation interrupted"
-            "[/yellow]"
-        )
+        console.print("\n[yellow]" "Generation interrupted" "[/yellow]")
 
     except Exception as e:
 
-        console.print(
-
-            f"\n[red]"
-            f"Stream error:"
-            f"[/red] {e}"
-        )
+        console.print(f"\n[red]" f"Stream error:" f"[/red] {e}")
 
     finally:
 
         console.print()
 
-    logger.info(
-        f"Response:\n{response_text}"
-    )
-
     if use_chat:
+        store.append(chat_name, "user", user_prompt)
 
-        store.append(
-
-            chat_name,
-
-            "user",
-
-            user_prompt
-        )
-
-        store.append(
-
-            chat_name,
-
-            "assistant",
-
-            response_text
-        )
+        store.append(chat_name, "assistant", response_text)
 
 def main():
     print("catGirl")
