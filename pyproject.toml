@@ -62,7 +62,7 @@ url = "https://pypi.org/simple"
 priority = 2
 
 [project.scripts]
-lor = "codeassistant.cli.main:app"
+magic = "codeassistant.cli.main:app"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

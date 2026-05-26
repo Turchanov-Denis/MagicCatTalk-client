@@ -14,10 +14,10 @@ logging.basicConfig(
     ),
     handlers=[
         logging.FileHandler(
-            LOG_DIR / "lorariel.log",
+            LOG_DIR / "MagicCat.log",
             encoding="utf-8"
         )
     ]
 )
 
-logger = logging.getLogger("lorariel")
+logger = logging.getLogger("magiccat")

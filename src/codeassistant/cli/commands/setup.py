@@ -118,7 +118,7 @@ def setup():
 
     backend_url = config.get("backend_url", "http://localhost:8000")
 
-    console.print("\n[bold cyan]Lorariel Setup[/bold cyan]\n")
+    console.print("\n[bold cyan]MagicCat Setup[/bold cyan]\n")
 
     if config.get("model_id"):
         console.print(f"[green]Current model:[/green] " f"{config['model_id']}")

@@ -1,7 +1,7 @@
 from pathlib import Path
 import yaml
 
-LOR_DIR = Path.cwd() / ".lor"
+LOR_DIR = Path.cwd() / ".magic"
 CONFIG_PATH = LOR_DIR / "config.yaml"
 
 

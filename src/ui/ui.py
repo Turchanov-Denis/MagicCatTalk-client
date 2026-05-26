@@ -40,13 +40,13 @@ from utils.files import (
     refresh_file_cache
 )
 
-LOR_DIR = Path.cwd() / ".lor"
+LOR_DIR = Path.cwd() / ".magic"
 
 if not LOR_DIR.exists():
     console.print()
 
     console.print(
-        "[yellow].lor not found[/yellow]"
+        "[yellow].magic not found[/yellow]"
     )
 
     console.print(
@@ -80,7 +80,7 @@ COMMANDS = {
         "review last git commit",
 
     "/exit":
-        "quit Lorariel",
+        "quit MagicCat",
 }
 
 

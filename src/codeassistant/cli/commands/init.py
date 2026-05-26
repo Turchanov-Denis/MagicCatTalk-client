@@ -11,13 +11,13 @@ from utils.console import console
 session = PromptSession()
 
 
-LOR_DIR = Path.cwd() / ".lor"
+LOR_DIR = Path.cwd() / ".magic"
 
 CONFIG_PATH = LOR_DIR / "config.yaml"
 
 
 DEFAULT_CONFIG = {
-    "assistant_name": "Lorariel",
+    "assistant_name": "MagicCat",
     "character_ASCII": (
         "*\n"
         " \\\n"
@@ -81,7 +81,7 @@ def init():
 
     if LOR_DIR.exists():
 
-        console.print("[yellow]" ".lor already exists" "[/yellow]")
+        console.print("[yellow]" ".magic already exists" "[/yellow]")
 
         return
 

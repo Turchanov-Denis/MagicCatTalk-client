@@ -9,7 +9,7 @@ class ChatStore:
 
     def __init__(self):
 
-        self.base_dir = Path.cwd() / ".lor" / "chats"
+        self.base_dir = Path.cwd() / ".magic" / "chats"
 
         self.base_dir.mkdir(parents=True, exist_ok=True)
 

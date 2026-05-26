@@ -1,0 +1,18 @@
+assistant_name: MagicCat
+character_ASCII: "   /\\_/\\\n  ( o.o )\n===/ * \\===\n  (_\\_/_)\n"
+theme:
+  primary: medium_purple
+  text: white
+  muted: gray
+  border: white
+  success: green
+  warning: yellow
+  error: red
+backend_url: http://localhost:8000
+model_id: Qwen/Qwen2.5-Coder-3B-Instruct
+lora: null
+active_chat: Lord
+memory:
+  max_context_tokens: 4096
+  summary_trigger_tokens: 2048
+  summary_max_tokens: 256
