@@ -1,112 +1,377 @@
+import re
+
 import requests
 
 from utils.console import console
 
 from utils.config import load_config
 
-from utils.tools import read_file, read_file_range
+from utils.tools import (
+    read_file
+)
 
 from utils.chat_store import ChatStore
 
-from utils.memory import build_recent_window, build_prompt
+from utils.memory import (
+    build_recent_window,
+    build_prompt
+)
+
+from utils.codebase import (
+    build_auto_context
+)
+
+from utils.logger import logger
+
 
 store = ChatStore()
 
 
-def prompt(text: str = "", file: str = None, lines: str = None, use_chat: bool = True):
-    content = ""
+SYSTEM_PROMPT = """
+You are a code assistant.
 
-    if file:
+Rules:
+- Answer ONLY using provided context
+- Do NOT invent code
+- Do NOT hallucinate architecture
+- If information is missing say:
+  "Not enough context"
+- Focus ONLY on provided code
+""".strip()
 
-        if lines and ":" in lines:
 
-            start, end = map(int, lines.split(":"))
+def extract_mentions(text: str):
 
-            content = read_file_range(file, start, end)
+    return re.findall(
+        r"@([^\s]+)",
+        text
+    )
+
+
+def build_selected_context(selected):
+
+    return f"""
+Symbol:
+{selected["name"]}
+
+Type:
+{selected["type"]}
+
+File:
+{selected["file"]}
+
+Lines:
+{selected["lineno"]}-{selected["end_lineno"]}
+
+Code:
+
+{selected["code"]}
+""".strip()
+
+
+def prompt(
+        text: str = "",
+        use_chat: bool = True
+):
+
+    result = build_auto_context(
+        text
+    )
+
+    auto_context = ""
+
+    code_query = bool(
+        result
+    )
+
+    if isinstance(result, dict):
+
+        if result.get("ambiguous"):
+
+            matches = result["matches"]
+
+            console.print()
+
+            console.print(
+                "[yellow]"
+                "Multiple symbols found:"
+                "[/yellow]"
+            )
+
+            console.print()
+
+            for i, match in enumerate(
+                    matches,
+                    start=1
+            ):
+
+                console.print(
+
+                    f"[cyan]{i}.[/cyan] "
+
+                    f"{match['file']}"
+                )
+
+            console.print()
+
+            choice = input(
+                "Select file number: "
+            ).strip()
+
+            try:
+
+                index = int(choice) - 1
+
+                selected = matches[index]
+
+            except Exception:
+
+                console.print(
+                    "[red]"
+                    "Invalid selection"
+                    "[/red]"
+                )
+
+                return
+
+            auto_context = build_selected_context(
+                selected
+            )
 
         else:
 
-            content = read_file(file)
+            auto_context = result.get(
+                "context",
+                ""
+            )
+
+    elif isinstance(result, str):
+
+        auto_context = result
+
+    mentions = extract_mentions(
+        text
+    )
 
     parts = []
 
+    if auto_context:
+
+        parts.append(
+            auto_context
+        )
+
+    for mention in mentions:
+
+        if auto_context:
+
+            if mention in auto_context:
+                continue
+
+        try:
+
+            content = read_file(
+                mention
+            )
+
+            parts.append(
+
+                f"""
+File:
+{mention}
+
+Content:
+
+{content}
+""".strip()
+            )
+
+        except Exception:
+
+            pass
+
     if text:
-        parts.append(text)
 
-    if content:
-        parts.append(content)
+        parts.append(
+            text
+        )
 
-    user_prompt = "\n\n".join(parts).strip()
+    user_prompt = (
+
+        "\n\n".join(parts)
+
+        .strip()
+    )
 
     if not user_prompt:
-        console.print("[red]" "Empty prompt" "[/red]")
+
+        console.print(
+
+            "[red]"
+            "Empty prompt"
+            "[/red]"
+        )
 
         return
 
     config = load_config()
 
-    backend_url = config.get("backend_url")
+    backend_url = config.get(
+        "backend_url"
+    )
 
-    lora = config.get("lora")
+    lora = config.get(
+        "lora"
+    )
 
-    final_prompt = user_prompt
+    final_prompt = (
 
-    chat_name = config.get("active_chat", "default")
+        f"{SYSTEM_PROMPT}\n\n"
 
-    if use_chat:
-        data = store.load(chat_name)
+        f"{user_prompt}"
+    )
 
-        recent = build_recent_window(data["messages"])
+    chat_name = config.get(
+        "active_chat",
+        "default"
+    )
 
-        final_prompt = build_prompt(
-            summary=data.get("summary", ""), messages=recent, current_prompt=user_prompt
+    if use_chat and not code_query:
+
+        data = store.load(
+            chat_name
         )
 
-    payload = {"prompt": final_prompt}
+        recent = build_recent_window(
+            data["messages"]
+        )
+
+        final_prompt = build_prompt(
+
+            summary=data.get(
+                "summary",
+                ""
+            ),
+
+            messages=recent,
+
+            current_prompt=final_prompt
+        )
+
+    logger.info(
+        f"Request:\n{final_prompt}"
+    )
+
+    payload = {
+
+        "prompt": final_prompt
+    }
 
     if lora:
+
         payload["lora"] = lora
 
     response_text = ""
 
     try:
 
+        logger.info(
+            f"Sending request to backend: "
+            f"{backend_url}/v1/generate/stream"
+        )
+
         response = requests.post(
-            f"{backend_url}/v1/generate/stream", json=payload, stream=True, timeout=300
+
+            f"{backend_url}/v1/generate/stream",
+
+            json=payload,
+
+            stream=True,
+
+            timeout=300
         )
 
         response.raise_for_status()
 
+        logger.info(
+            "Backend connection established"
+        )
+
     except Exception as e:
 
-        console.print(f"[red]" f"Backend error:" f"[/red] {e}")
+        console.print(
+
+            f"[red]"
+            f"Backend error:"
+            f"[/red] {e}"
+        )
 
         return
 
     try:
 
-        for chunk in response.iter_content(chunk_size=None, decode_unicode=True):
+        for chunk in response.iter_content(
+
+                chunk_size=None,
+
+                decode_unicode=True
+        ):
 
             if chunk:
+
                 response_text += chunk
 
-                console.file.write(chunk)
+                console.file.write(
+                    chunk
+                )
 
                 console.file.flush()
 
     except KeyboardInterrupt:
 
-        console.print("\n[yellow]" "Generation interrupted" "[/yellow]")
+        console.print(
+
+            "\n[yellow]"
+            "Generation interrupted"
+            "[/yellow]"
+        )
 
     except Exception as e:
 
-        console.print(f"\n[red]" f"Stream error:" f"[/red] {e}")
+        console.print(
+
+            f"\n[red]"
+            f"Stream error:"
+            f"[/red] {e}"
+        )
 
     finally:
 
         console.print()
 
-    if use_chat:
-        store.append(chat_name, "user", user_prompt)
+    logger.info(
+        f"Response:\n{response_text}"
+    )
 
-        store.append(chat_name, "assistant", response_text)
+    if use_chat:
+
+        store.append(
+
+            chat_name,
+
+            "user",
+
+            user_prompt
+        )
+
+        store.append(
+
+            chat_name,
+
+            "assistant",
+
+            response_text
+        )
+
+def main():
+    print("catGirl")
