@@ -27,14 +27,14 @@ Minimal local AI coding assistant for code generation, retrieval and project ana
 
 ### Clone repository
 
-```bash
+```
 git clone https://github.com/Turchanov-Denis/MagicCatTalk-client
 cd MagicCatTalk-client
 ```
 
 ### Install dependencies
 
-```bash
+```
 uv sync
 
 uv pip install -e .
@@ -42,7 +42,7 @@ uv pip install -e .
 
 ## Run
 
-```bash
+```
 magic
 ```
 Then init will do its job
