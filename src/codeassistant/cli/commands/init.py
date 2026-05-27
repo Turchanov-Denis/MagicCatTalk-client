@@ -60,35 +60,16 @@ def ask(label: str, default: str):
 
 def init():
 
-    # -------------------------
-    # EXISTS
-    # -------------------------
-
     if LOR_DIR.exists():
 
         console.print("[yellow]" ".magic already exists" "[/yellow]")
 
         return
 
-    # -------------------------
-    # CREATE DIRS
-    # -------------------------
 
     (LOR_DIR / "chats").mkdir(parents=True, exist_ok=True)
 
-    (LOR_DIR / "cache").mkdir()
-
-    (LOR_DIR / "sessions").mkdir()
-
-    # -------------------------
-    # COPY DEFAULTS
-    # -------------------------
-
     config = DEFAULT_CONFIG.copy()
-
-    # -------------------------
-    # INPUTS
-    # -------------------------
 
     config["assistant_name"] = ask("Assistant name", config["assistant_name"])
 
@@ -96,17 +77,9 @@ def init():
 
     config["model_id"] = ask("Model", config["model_id"])
 
-    # -------------------------
-    # SAVE
-    # -------------------------
-
     with open(CONFIG_PATH, "w", encoding="utf-8") as f:
 
         yaml.safe_dump(config, f, allow_unicode=True, sort_keys=False)
-
-    # -------------------------
-    # UI
-    # -------------------------
 
     console.print()
 

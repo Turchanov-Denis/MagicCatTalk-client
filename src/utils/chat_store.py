@@ -11,7 +11,7 @@ class ChatStore:
 
         self.base_dir = Path.cwd() / ".magic" / "chats"
 
-        self.base_dir.mkdir(parents=True, exist_ok=True)
+        # self.base_dir.mkdir(parents=True, exist_ok=True)
 
     def path(self, name: str):
 
