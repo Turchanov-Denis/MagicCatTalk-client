@@ -1,53 +1,92 @@
+# code_review.py
+
 from pathlib import Path
 
 from git import Repo
 
 from utils.console import console
 
-from utils.config import load_config
+from codeassistant.cli.commands.prompt import (
+    prompt,
+    build_code_review_prompt
+)
 
-from codeassistant.cli.commands.prompt import prompt
 
-SUPPORTED_EXTENSIONS = [".py", ".js", ".ts", ".java", ".cpp", ".c"]
+SUPPORTED_EXTENSIONS = [
+
+    ".py",
+    ".js",
+    ".ts",
+
+    ".java",
+
+    ".cpp",
+    ".c"
+]
 
 
-IGNORED_PATHS = ["benchmark/results", "logs", "__pycache__", ".git"]
+IGNORED_PATHS = [
+
+    "benchmark/results",
+
+    "logs",
+
+    "__pycache__",
+
+    ".git"
+]
 
 
 MAX_REVIEW_FILES = 10
 
-MAX_CHUNKS_PER_FILE = 3
+MAX_CHUNKS_PER_FILE = 5
+
+MAX_CHUNK_LINES = 120
 
 
-REVIEW_TEMPLATE = """
-You are performing a strict code review.
+# -------------------------
+# split large hunk
+# -------------------------
 
-Find:
-- bugs
-- vulnerabilities
-- resource leaks
-- logic issues
+def split_large_hunk(
+        hunk: str,
+        max_lines: int
+):
+
+    lines = hunk.splitlines()
+
+    chunks = []
+
+    current = []
+
+    for line in lines:
+
+        current.append(line)
+
+        if len(current) >= max_lines:
+
+            chunks.append(
+                "\n".join(current)
+            )
+
+            current = []
+
+    if current:
+
+        chunks.append(
+            "\n".join(current)
+        )
+
+    return chunks
 
 
-File:
-{file}
+# -------------------------
+# split diff by hunks
+# -------------------------
 
-Changed lines:
-{lines}
-
-Diff:
-{diff}
-
-Relevant context:
-{context}
-
-Review:
-"""
-
-
-def split_diff_by_hunks(patch, max_tokens):
-
-    max_chars = max_tokens * 4
+def split_diff_by_hunks(
+        patch: str
+):
 
     hunks = []
 
@@ -59,7 +98,9 @@ def split_diff_by_hunks(patch, max_tokens):
 
             if current:
 
-                hunks.append("\n".join(current))
+                hunks.append(
+                    "\n".join(current)
+                )
 
                 current = []
 
@@ -67,56 +108,88 @@ def split_diff_by_hunks(patch, max_tokens):
 
     if current:
 
-        hunks.append("\n".join(current))
+        hunks.append(
+            "\n".join(current)
+        )
 
     chunks = []
 
-    current_chunk = ""
-
     for hunk in hunks:
 
-        if len(current_chunk) + len(hunk) > max_chars:
+        if len(hunk.splitlines()) > MAX_CHUNK_LINES:
 
-            if current_chunk.strip():
+            chunks.extend(
 
-                chunks.append(current_chunk)
+                split_large_hunk(
 
-            current_chunk = ""
+                    hunk,
 
-        current_chunk += hunk + "\n"
+                    MAX_CHUNK_LINES
+                )
+            )
 
-    if current_chunk.strip():
+        else:
 
-        chunks.append(current_chunk)
+            chunks.append(hunk)
 
     return chunks[:MAX_CHUNKS_PER_FILE]
 
+
+# -------------------------
+# git repo
+# -------------------------
 
 def get_repo():
 
     try:
 
-        return Repo(Path.cwd(), search_parent_directories=True)
+        return Repo(
+
+            Path.cwd(),
+
+            search_parent_directories=True
+        )
 
     except Exception:
 
-        console.print("[red]" "Git repository not found" "[/red]")
+        console.print(
+            "[red]Git repository not found[/red]"
+        )
 
         return None
 
 
-def get_last_commit_diff(repo):
+# -------------------------
+# last commit diff
+# -------------------------
+
+def get_last_commit_diff(
+        repo
+):
 
     commit = repo.head.commit
 
     if not commit.parents:
 
-        return commit.diff(create_patch=True)
+        return commit.diff(
+            create_patch=True
+        )
 
-    return commit.parents[0].diff(commit, create_patch=True)
+    return commit.parents[0].diff(
+
+        commit,
+
+        create_patch=True
+    )
 
 
-def extract_changed_lines(patch):
+# -------------------------
+# changed lines
+# -------------------------
+
+def extract_changed_lines(
+        patch
+):
 
     changed = []
 
@@ -129,19 +202,26 @@ def extract_changed_lines(patch):
     return "\n".join(changed)
 
 
-def extract_line_numbers(changed_lines):
+# -------------------------
+# parse changed line ranges
+# -------------------------
+
+def extract_line_numbers(
+        changed_lines
+):
 
     ranges = []
 
     for line in changed_lines.splitlines():
 
         if "@@" not in line:
-
             continue
 
         try:
 
-            part = line.split("+")[1].split(" ")[0]
+            part = line.split("+")[1]
+
+            part = part.split(" ")[0]
 
             ranges.append(part)
 
@@ -152,9 +232,23 @@ def extract_line_numbers(changed_lines):
     return ranges
 
 
-def build_context(repo, file_path, line_ranges, radius=10):
+# -------------------------
+# surrounding context
+# -------------------------
 
-    full_path = Path(repo.working_tree_dir) / file_path
+def build_context(
+        repo,
+        file_path,
+        line_ranges,
+        radius=10
+):
+
+    full_path = (
+
+        Path(repo.working_tree_dir)
+
+        / file_path
+    )
 
     if not full_path.exists():
 
@@ -166,7 +260,11 @@ def build_context(repo, file_path, line_ranges, radius=10):
 
     try:
 
-        lines = full_path.read_text(encoding="utf-8").splitlines()
+        lines = full_path.read_text(
+
+            encoding="utf-8"
+
+        ).splitlines()
 
     except Exception:
 
@@ -178,42 +276,53 @@ def build_context(repo, file_path, line_ranges, radius=10):
 
         try:
 
-            start = int(item.split(",")[0])
+            start = int(
+                item.split(",")[0]
+            )
 
         except Exception:
 
             continue
 
-        left = max(0, start - radius)
+        left = max(
+            0,
+            start - radius
+        )
 
-        right = min(len(lines), start + radius)
+        right = min(
+            len(lines),
+            start + radius
+        )
 
-        chunk = "\n".join(lines[left:right])
+        chunk = "\n".join(
+
+            lines[left:right]
+        )
 
         collected.append(chunk)
 
     return "\n\n".join(collected)
 
 
+# -------------------------
+# main review command
+# -------------------------
+
 def code_review():
-
-    config = load_config()
-
-    memory_config = config.get("memory", {})
-
-    max_context_tokens = memory_config.get("max_context_tokens", 4096)
 
     repo = get_repo()
 
     if not repo:
-
         return
 
     console.print()
+    console.print(
+        "[yellow]Collecting git changes...[/yellow]"
+    )
 
-    console.print("[yellow]" "Collecting git changes..." "[/yellow]")
-
-    diffs = get_last_commit_diff(repo)
+    diffs = get_last_commit_diff(
+        repo
+    )
 
     reviewed = 0
 
@@ -225,7 +334,12 @@ def code_review():
 
         try:
 
-            patch = diff.diff.decode("utf-8", errors="ignore")
+            patch = diff.diff.decode(
+
+                "utf-8",
+
+                errors="ignore"
+            )
 
         except Exception:
 
@@ -235,63 +349,102 @@ def code_review():
 
             continue
 
-        file_path = diff.b_path or diff.a_path or "unknown"
+        file_path = (
 
-        if any(ignored in file_path for ignored in IGNORED_PATHS):
+            diff.b_path
+
+            or diff.a_path
+
+            or "unknown"
+        )
+
+        if any(
+
+            ignored in file_path
+
+            for ignored in IGNORED_PATHS
+        ):
 
             continue
 
-        extension = Path(file_path).suffix
+        extension = Path(
+            file_path
+        ).suffix
 
         if extension not in SUPPORTED_EXTENSIONS:
 
             continue
 
-        changed_lines = extract_changed_lines(patch)
+        changed_lines = extract_changed_lines(
+            patch
+        )
 
-        line_ranges = extract_line_numbers(changed_lines)
+        line_ranges = extract_line_numbers(
+            changed_lines
+        )
 
-        context = build_context(repo, file_path, line_ranges)
+        context = build_context(
 
-        available_tokens = max_context_tokens // 2
+            repo,
 
-        diff_chunks = split_diff_by_hunks(patch, available_tokens)
+            file_path,
+
+            line_ranges
+        )
+
+        diff_chunks = split_diff_by_hunks(
+            patch
+        )
+
+        if len(diff_chunks) >= MAX_CHUNKS_PER_FILE:
+
+            console.print(
+
+                "[yellow]"
+                "Large diff truncated"
+                "[/yellow]"
+            )
 
         reviewed += 1
 
-        for index, chunk in enumerate(diff_chunks, start=1):
+        for index, chunk in enumerate(
 
-            # final_prompt = REVIEW_TEMPLATE.format(
-            #     file=file_path, lines=changed_lines, diff=chunk, context=context
-            # )
+                diff_chunks,
 
-            # console.print(
-            #     "[cyan]"
-            #     f"Reviewing "
-            #     f"{file_path} "
-            #     f"(chunk "
-            #     f"{index}/"
-            #     f"{len(diff_chunks)})"
-            #     "[/cyan]"
-            # )
-            final_prompt = f"""
-            ### Instruction:
-            You are a senior software engineer.
+                start=1
+        ):
 
-            Perform a strict code review:
-            - find bugs
-            - bad practices
-            - performance issues
-            - suggest improvements
+            console.print(
 
-            ### Input:
+                "[cyan]"
 
-            {chunk}
+                f"Reviewing "
 
-            ### Response:
-            """
-            console.print(final_prompt)
+                f"{file_path} "
 
-            prompt(text=final_prompt, use_chat=False)
+                f"({index}/"
+
+                f"{len(diff_chunks)})"
+
+                "[/cyan]"
+            )
+
+            final_prompt = build_code_review_prompt(
+
+                file_path=file_path,
+
+                changed_lines=changed_lines,
+
+                diff_chunk=chunk,
+
+                context=context
+            )
+
+            prompt(
+
+                text=final_prompt,
+
+                use_chat=False
+            )
 
             console.print()

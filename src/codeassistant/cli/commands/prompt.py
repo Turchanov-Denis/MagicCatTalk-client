@@ -19,6 +19,7 @@ from utils.logger import logger
 
 store = ChatStore()
 
+
 # SYSTEM_PROMPT = """
 # You are a code assistant.
 #
@@ -137,12 +138,12 @@ def prompt(text: str = "", use_chat: bool = True):
         recent = build_recent_window(data["messages"])
         final_prompt = build_prompt(summary=data.get("summary", ""), messages=recent, current_prompt=user_prompt)
 
-        request_tokens = count_tokens(tokenizer,text)
-        code_tokens = count_tokens(tokenizer,auto_context)
+        request_tokens = count_tokens(tokenizer, text)
+        code_tokens = count_tokens(tokenizer, auto_context)
 
-        memory_text = "\n".join(msg.get("content","") for msg in recent)
+        memory_text = "\n".join(msg.get("content", "") for msg in recent)
         memory_tokens = count_tokens(tokenizer, memory_text)
-        total_tokens = count_tokens(tokenizer,final_prompt)
+        total_tokens = count_tokens(tokenizer, final_prompt)
 
         console.print(
             f"[dim]"
@@ -152,7 +153,6 @@ def prompt(text: str = "", use_chat: bool = True):
             f" | memory {memory_tokens}"
             f"[/dim]"
         )
-
 
     payload = {"prompt": final_prompt}
     if lora:
@@ -194,5 +194,69 @@ def prompt(text: str = "", use_chat: bool = True):
         store.append(chat_name, "assistant", response_text)
 
 
+
+def build_code_review_prompt(
+    file_path: str,
+    changed_lines: str,
+    diff_chunk: str,
+    context: str
+):
+
+    return f"""
+### Instruction:
+You are a senior software engineer.
+
+Perform a strict code review:
+- find bugs
+- bad practices
+- performance issues
+- suggest improvements
+
+- DO NOT suggest Unnecessary Import
+
+IMPORTANT:
+- explain WHY the issue matters
+- provide corrected code examples when possible
+- keep answers practical
+- do NOT summarize the diff
+- focus on real issues only
+
+### File:
+{file_path}
+
+### Changed Lines:
+{changed_lines}
+
+### Relevant Context:
+{context}
+
+### Input:
+
+{diff_chunk}
+
+### Response:
+""".strip()
+
+
+
+
 def main():
     print("catGirl")
+
+
+
+
+
+
+
+
+
+
+
+
+def divide(a, b):
+
+    if b == 0:
+        raise ValueError("Division by zero")
+
+    return a / b
